@@ -4,6 +4,8 @@ import traceback
 from circuit import Circuit
 from evaluator import Evaluator
 from garbler import Garbler
+from optim import Optimizer
+
 
 from utils import GateType
 
@@ -17,19 +19,25 @@ def main():
 
     # Sum
     a_xor_b = c.add_gate(GateType.XOR, [a, b])  # Intermediate sum (A XOR B)
-    sum_ = c.add_gate(GateType.XOR, [a_xor_b, cin])  # Final sum (A XOR B XOR Cin)
+    # Final sum (A XOR B XOR Cin)
+    sum_ = c.add_gate(GateType.XOR, [a_xor_b, cin])
 
     # Carry-out
-    a_and_b = c.add_gate(GateType.AND, [a, b])
-    b_and_cin = c.add_gate(GateType.AND, [b, cin])
-    a_and_cin = c.add_gate(GateType.AND, [a, cin])
+    a_and_b = c.add_gate(GateType.AND, [a, b])  # A AND B
+    b_and_cin = c.add_gate(GateType.AND, [b, cin])  # B AND Cin
+    a_and_cin = c.add_gate(GateType.AND, [a, cin])  # A AND Cin
 
     intermediate_carry1 = c.add_gate(
         GateType.OR, [a_and_b, b_and_cin]
     )  # (A AND B) OR (B AND Cin)
-    carry_out = c.add_gate(GateType.OR, [intermediate_carry1, a_and_cin])
+    carry_out = c.add_gate(
+        GateType.OR, [intermediate_carry1, a_and_cin]
+    )  # (A AND B) OR (B AND Cin) OR (A AND Cin)
 
     # c.pretty_print_circuit()
+    optim = Optimizer()
+    parsed = optim.parse_circuit(c)
+    optim.run(parsed, 100)
 
     garbler = Garbler(c)
     evaluator = Evaluator(garbler.wire_to_keys, garbler.garbled_gates)

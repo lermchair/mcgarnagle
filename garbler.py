@@ -57,7 +57,7 @@ class Garbler:
         wire_ids = list(wire_to_labels.keys())
         in_key_a_0, in_key_a_1 = wire_to_labels[wire_ids[0]]
         # TODO: handle case where there is only one input
-        in_key_b_0, in_key_b_1 = wire_to_labels[wire_ids[1]]
+        in_key_b_0, in_key_b_1 = wire_to_labels.get(wire_ids[1], (None, None))
 
         if gate_op == GateType.XOR:
             output_0_label = bytes_xor(in_key_a_0, in_key_b_0)

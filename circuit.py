@@ -18,10 +18,11 @@ class Gate:
 
 
 class Circuit:
-    def __init__(self):
+    def __init__(self) -> None:
         self.gates: list[Gate] = []
         self.wires: dict[int, Wire] = {}
         self.wire_nonce: int = 0
+        self.wire_to_gate: dict[int, Gate] = {}
 
     def add_wire(self) -> Wire:
         wire = Wire(self.wire_nonce)
@@ -34,9 +35,15 @@ class Circuit:
             assert wire.id in self.wires, f"Input wire {wire} does not exist"
         output_wire = Wire(self.wire_nonce)
         self.wires[self.wire_nonce] = output_wire
-        self.gates.append(Gate(gate, inputs, self.wires[self.wire_nonce]))
+        new_gate = Gate(gate, inputs, self.wires[self.wire_nonce])
+        self.gates.append(new_gate)
+        self.wire_to_gate[output_wire.id] = new_gate
         self.wire_nonce += 1
         return output_wire
+
+    def get_output_wires(self) -> list[Wire]:
+        input_wire_ids = {wire.id for gate in self.gates for wire in gate.inputs}
+        return [wire for wire in self.wires.values() if wire.id not in input_wire_ids]
 
     def pretty_print_circuit(self, view: bool = True) -> None:
         dot = Digraph(comment="Garbled Circuit", format="png")

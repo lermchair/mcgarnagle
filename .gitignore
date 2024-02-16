@@ -1,3 +1,6 @@
 __pycache__
 .mypy_cache
 ot.py
+*.gv
+*.svg
+*.png
