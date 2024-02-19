@@ -4,3 +4,6 @@ ot.py
 *.gv
 *.svg
 *.png
+*.json
+*.v
+*.ys

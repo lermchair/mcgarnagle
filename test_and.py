@@ -6,7 +6,7 @@ from garbler import Garbler
 from utils import GateType
 
 
-class TestGarbledCircuitXOR(unittest.TestCase):
+class TestGarbledCircuitAND(unittest.TestCase):
     def setUp(self):
         # Setup common to all tests
         # self.circuit = Circuit()
@@ -17,58 +17,55 @@ class TestGarbledCircuitXOR(unittest.TestCase):
         self.circuit = {
             "a": None,
             "b": None,
-            "a_xor_b": (GateType.XOR, "a", "b"),
+            "a_and_b": (GateType.AND, "a", "b"),
         }
 
-        self.garbler = Garbler(self.circuit, ["a", "b"], ["a_xor_b"])
+        self.garbler = Garbler(self.circuit, ["a", "b"], ["a_and_b"])
         self.evaluator = Evaluator(
             self.circuit,
             ["a", "b"],
-            ["a_xor_b"],
+            ["a_and_b"],
             self.garbler.wire_to_keys,
             self.garbler.garbled_gates,
         )
 
-    def test_xor_0_0(self):
-        # Inputs
-        alice_input_a = self.garbler.wire_to_keys["a"][0]  # Alice's A input is 0
-        bob_input_b = self.garbler.wire_to_keys["b"][0]  # Bob's B input is 0
-        # Evaluation
+    def test_and_0_0(self):
+        alice_input_a = self.garbler.wire_to_keys["a"][0]
+        bob_input_b = self.garbler.wire_to_keys["b"][0]
         result = self.evaluator.evaluate(
             [{"a": alice_input_a}, {"b": bob_input_b}],
-            ["a_xor_b"],
-            # [(self.a.id, alice_input_a), (self.b.id, bob_input_b)], [self.a_xor_b.id]
+            ["a_and_b"],
         )
         # Check result
         print(result)
-        self.assertEqual(result["a_xor_b"], 0, "XOR operation failed for inputs 0, 0")
+        self.assertEqual(result["a_and_b"], 0, "AND operation failed for inputs 0, 0")
 
-    def test_xor_0_1(self):
+    def test_and_0_1(self):
         alice_input_a = self.garbler.wire_to_keys["a"][0]
         bob_input_b = self.garbler.wire_to_keys["b"][1]
         result = self.evaluator.evaluate(
             [{"a": alice_input_a}, {"b": bob_input_b}],
-            ["a_xor_b"],
+            ["a_and_b"],
         )
-        self.assertEqual(result["a_xor_b"], 1, "XOR operation failed for inputs 0, 1")
+        self.assertEqual(result["a_and_b"], 0, "AND operation failed for inputs 0, 1")
 
-    def test_xor_1_0(self):
+    def test_and_1_0(self):
         alice_input_a = self.garbler.wire_to_keys["a"][1]
         bob_input_b = self.garbler.wire_to_keys["b"][0]
         result = self.evaluator.evaluate(
             [{"a": alice_input_a}, {"b": bob_input_b}],
-            ["a_xor_b"],
+            ["a_and_b"],
         )
-        self.assertEqual(result["a_xor_b"], 1, "XOR operation failed for inputs 1, 0")
+        self.assertEqual(result["a_and_b"], 0, "AND operation failed for inputs 1, 0")
 
-    def test_xor_1_1(self):
+    def test_and_1_1(self):
         alice_input_a = self.garbler.wire_to_keys["a"][1]
         bob_input_b = self.garbler.wire_to_keys["b"][1]
         result = self.evaluator.evaluate(
             [{"a": alice_input_a}, {"b": bob_input_b}],
-            ["a_xor_b"],
+            ["a_and_b"],
         )
-        self.assertEqual(result["a_xor_b"], 0, "XOR operation failed for inputs 1, 1")
+        self.assertEqual(result["a_and_b"], 1, "AND operation failed for inputs 1, 1")
 
 
 if __name__ == "__main__":

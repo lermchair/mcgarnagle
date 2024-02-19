@@ -1,63 +1,80 @@
+import json
 import pdb
 import sys
+import timeit
 import traceback
-from circuit import Circuit
+from typing import Optional
+
+from circuit import Circuit, Gate
 from evaluator import Evaluator
 from garbler import Garbler
 from optim import Optimizer
+from utils import parse_yosys_json
 
 
-from utils import GateType
+def wire_values(wire_name: str, value: int, bitsize: int):
+    bits = bin(value)[2:].zfill(bitsize)
+    return {f"{wire_name}_{i+2}": int(bit) for i, bit in enumerate(reversed(bits))}
+
+
+def wire_values2(input_keys: list[str], value: int):
+    bits = bin(value)[2:].zfill(len(input_keys))
+    # map each input_key to the bit value
+    return {input_key: int(bit) for input_key, bit in zip(input_keys, reversed(bits))}
 
 
 def main():
-    # 1-bit full adder circuit
-    c = Circuit()
-    a = c.add_wire()  # A input
-    b = c.add_wire()  # B input
-    cin = c.add_wire()  # Carry-in input
+    f = open("synthesized_multiplier.json", "r")
+    data = json.load(f)
 
-    # Sum
-    a_xor_b = c.add_gate(GateType.XOR, [a, b])  # Intermediate sum (A XOR B)
-    # Final sum (A XOR B XOR Cin)
-    sum_ = c.add_gate(GateType.XOR, [a_xor_b, cin])
+    circ, ins, outs = parse_yosys_json(data)
+    # x = 1185372425
+    # y = 1337
 
-    # Carry-out
-    a_and_b = c.add_gate(GateType.AND, [a, b])  # A AND B
-    b_and_cin = c.add_gate(GateType.AND, [b, cin])  # B AND Cin
-    a_and_cin = c.add_gate(GateType.AND, [a, cin])  # A AND Cin
+    x = 123
+    y = 123
 
-    intermediate_carry1 = c.add_gate(
-        GateType.OR, [a_and_b, b_and_cin]
-    )  # (A AND B) OR (B AND Cin)
-    carry_out = c.add_gate(
-        GateType.OR, [intermediate_carry1, a_and_cin]
-    )  # (A AND B) OR (B AND Cin) OR (A AND Cin)
+    garbler = Garbler(circ, ins, outs)
 
-    # c.pretty_print_circuit()
-    optim = Optimizer()
-    parsed = optim.parse_circuit(c)
-    optim.run(parsed, 100)
+    alice_input_keys = [f"a_{i}" for i in ins["a"]]
+    print(alice_input_keys)
 
-    garbler = Garbler(c)
-    evaluator = Evaluator(garbler.wire_to_keys, garbler.garbled_gates)
+    alice_input_values = {**wire_values2(alice_input_keys, x)}
 
-    alice_input_a = garbler.wire_to_keys[a.id][0]
-    bob_input_b = garbler.wire_to_keys[b.id][1]
-    cin_input = garbler.wire_to_keys[cin.id][0]
+    for wire_id, value in alice_input_values.items():
+        alice_input_values[wire_id] = garbler.wire_to_keys[wire_id][value]
+
+    print(alice_input_values)
+
+    bob_input_keys = [f"b_{i}" for i in ins["b"]]
+    bob_input_values = {**wire_values2(bob_input_keys, y)}
+    for wire_id, value in bob_input_values.items():
+        bob_input_values[wire_id] = garbler.wire_to_keys[wire_id][value]
+
+    evaluator = Evaluator(circ, ins, outs, garbler.wire_to_keys, garbler.garbled_gates)
+
+    output_wires = [f"result_{i}" for i in outs["result"]]
+    print(output_wires)
 
     result = evaluator.evaluate(
-        [(a.id, alice_input_a), (b.id, bob_input_b), (cin.id, cin_input)],
-        [sum_.id, carry_out.id],
+        [alice_input_values, bob_input_values],
+        [output_wires],
     )
 
-    print(result)
+    res = 0
+    for i, wire in enumerate(output_wires):
+        res |= result[wire] << i
+    print(f"Result is: {res}")
+
+    print(f"{len(garbler.garbled_gates)} total gates")
 
 
 if __name__ == "__main__":
     # try:
+    # duration = timeit.timeit(stmt=main, number=10)
+    # print(f"Average duration over 10 runs: {duration} seconds")
     main()
 # except Exception:
-# extype, value, tb = sys.exc_info()
-# traceback.print_exc()
-# pdb.post_mortem(tb)
+#     extype, value, tb = sys.exc_info()
+#     traceback.print_exc()
+#     pdb.post_mortem(tb)
