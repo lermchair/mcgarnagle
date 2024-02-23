@@ -6,7 +6,7 @@
 ## What is this?
 
 - A simple way to optimize [garbled circuits](https://en.wikipedia.org/wiki/Garbled_circuit) with [e-graphs](https://en.wikipedia.org/wiki/E-graph) and equality saturation. It uses the [egg](https://egraphs-good.github.io/) crate to handle e-graphs.
-- Garbled circuits have an optimization you can do that allows XOR gates to be free to compute.
+- Garbled circuits have an optimization you can do that allows XOR gates to be free to compute. This rewrite boolean circuits to maximize the number of XOR gates.
 
 ## Does it actually work?
 
