@@ -1,0 +1,13 @@
+# synth.ys
+read_verilog mul8.v
+
+synth ; # Perform synthesis
+
+clean_zerowidth
+clean -purge
+
+
+abc -g gates
+
+write_verilog -noattr synthesized.v
+write_json synthesized.json

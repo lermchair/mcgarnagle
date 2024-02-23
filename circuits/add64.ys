@@ -1,0 +1,10 @@
+read_verilog add64.v
+synth
+
+clean_zerowidth
+clean -purge
+
+abc -g gates
+
+write_verilog -simple-lhs -noattr synth_add64.v
+write_json synth_add64.json
