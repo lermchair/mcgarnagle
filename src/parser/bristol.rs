@@ -115,7 +115,8 @@ pub fn parse_bristol_fashion(
         for input_wire in &input_wires {
             let input_parsed = input_wire.parse::<usize>().unwrap();
             let in_input_range = input_parsed >= min_input_id && input_parsed <= max_input_id;
-            let in_output_range = input_parsed >= min_output_id && input_parsed <= max_output_id;
+            let in_output_range =
+                input_parsed >= min_output_id + 1 && input_parsed <= max_output_id;
             if in_input_range {
                 let in_b_range = input_parsed >= inputs[0] && input_parsed <= max_input_id + 1;
                 let in_a_range = input_parsed >= min_input_id && input_parsed < inputs[0];
@@ -139,7 +140,7 @@ pub fn parse_bristol_fashion(
         }
 
         let output_wire = parts[parts.len() - 2].parse::<usize>().unwrap();
-        let in_output_range = output_wire >= min_output_id && output_wire <= max_output_id;
+        let in_output_range = output_wire >= min_output_id + 1 && output_wire <= max_output_id;
         if in_output_range {
             let new_output_wire = format!("out_{}", output_wire);
             gates.push(Gate {

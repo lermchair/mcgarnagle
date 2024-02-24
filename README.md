@@ -31,6 +31,5 @@ Kind of. Here is the result from running `cargo bench`, which compares an optimi
 TODO:
 
 - [ ] Actually implement oblivious transfer
-- [ ] Parse multi-file verilog modules (e.g. AES)
-- [ ] Add parsers for more circuit formats, like Bristol Fashion
+- [ ] Parse multi-file verilog modules
 - [ ] Write better rules

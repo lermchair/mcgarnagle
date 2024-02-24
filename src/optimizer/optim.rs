@@ -36,7 +36,7 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
         println!("Generating expression...");
         // println!("Building for: {} -> {:?}", wire_name, circuit_structure);
         let expr = gates_to_expr(&circuit_structure);
-        println!("{} -> {}", wire_name, expr.to_string());
+        println!("{} -> expr with len {}", wire_name, expr.as_ref().len());
         output_to_expr.insert(wire_name.clone(), expr);
     }
 
@@ -52,6 +52,7 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
     let mut existing_gates: HashMap<String, String> = HashMap::new();
 
     println!("Simplifying expressions...");
+
     for (output_name, expr) in output_to_expr.iter() {
         let simplified = simplify(expr);
         build_circuit(
