@@ -2,15 +2,24 @@ use std::{collections::BTreeMap, fs::read_to_string};
 
 use fernet::Fernet;
 use rs::{
-    evaluator::Evaluator, garbler::Garbler, optimizer::optimize, parser::parse_yosys_json,
-    utils::wire_values,
+    evaluator::Evaluator,
+    garbler::Garbler,
+    optimizer::optimize,
+    parser::{parse_bristol_fashion, parse_yosys_json},
+    utils::{topo_sort_wires, wire_values},
 };
 
 fn main() {
     let delta = Fernet::generate_key();
-    let file_path = "./circuits/synthesized.json".to_owned();
+    let file_path = "./circuits/adder64.txt".to_owned();
+    // let file_path = "./circuits/synth_add64.json".to_owned();
     let contents = read_to_string(file_path).expect("Couldn't find or load that file.");
-    let (circuit, ins, outs) = parse_yosys_json(&contents);
+    let (circuit, ins, outs) = parse_bristol_fashion(&contents);
+    // let (circuit, ins, outs) = parse_yosys_json(&contents);
+
+    println!("Circuit: {:?}", circuit);
+    println!("Ins: {:?}", ins);
+    println!("Outs: {:?}", outs);
 
     let out_keys = outs
         .iter()
@@ -24,11 +33,12 @@ fn main() {
         .collect::<Vec<String>>();
 
     let xor_optimized_circuit = optimize(circuit.clone(), out_keys.clone());
+    println!("Optimized circuit: {:?}", xor_optimized_circuit);
 
     let alice_input_keys = &ins["a"];
 
-    let x = 12;
-    let y = 12;
+    let x = 999;
+    let y = 77;
 
     let alice_input_values = wire_values(alice_input_keys, x);
     let mut alice_input_labels = BTreeMap::new();
@@ -38,12 +48,7 @@ fn main() {
     let bob_input_values = wire_values(bob_input_keys, y);
     let mut bob_input_labels = BTreeMap::new();
 
-    let mut garbler = Garbler::new(
-        delta,
-        xor_optimized_circuit.clone(),
-        ins.clone(),
-        outs.clone(),
-    );
+    let mut garbler = Garbler::new(delta, circuit.clone(), ins.clone(), outs.clone());
     let (wire_to_keys, garbled_gates) = garbler.build();
 
     for (wire_id, value) in alice_input_values.iter() {
@@ -70,7 +75,7 @@ fn main() {
     println!("Bob inputs: {:?}", bob_input_labels);
 
     let mut evaluator = Evaluator::new(
-        xor_optimized_circuit,
+        circuit,
         out_keys.clone(),
         wire_to_keys.clone(),
         garbled_gates,

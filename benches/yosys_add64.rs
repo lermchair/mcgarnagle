@@ -115,12 +115,14 @@ fn criterion_benchmark(c: &mut Criterion) {
     );
     let (xor_wire_to_keys, xor_garbled_gates) = xor_garbler.build();
 
-    c.bench_function("normal_circuit", |b| {
+    let mut group = c.benchmark_group("CompareFunctions");
+
+    group.bench_function("normal_circuit", |b| {
         b.iter(|| {
             garble_and_evaluate_prepared(&normal_circuit, &ins, &wire_to_keys, &garbled_gates)
         })
     });
-    c.bench_function("xor_optimized_circuit", |b| {
+    group.bench_function("xor_optimized_circuit", |b| {
         b.iter(|| {
             garble_and_evaluate_prepared(
                 &xor_optimized_circuit,
@@ -130,6 +132,7 @@ fn criterion_benchmark(c: &mut Criterion) {
             )
         })
     });
+    group.finish();
 }
 
 criterion_group!(benches, criterion_benchmark);

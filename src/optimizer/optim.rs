@@ -1,6 +1,7 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, VecDeque},
     rc::Rc,
+    sync::Mutex,
 };
 
 use egg::{Extractor, Id, RecExpr, Runner};
@@ -27,9 +28,15 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
 
     println!("Traversing outputs...");
 
+    let memo = Mutex::new(HashMap::new());
+
     for wire_name in outputs.iter() {
-        let circuit_structure = traverse_wire(wire_name, &circuit);
+        println!("Traversing wire: {}", wire_name);
+        let circuit_structure = traverse_wire(wire_name, &circuit, &memo);
+        println!("Generating expression...");
+        // println!("Building for: {} -> {:?}", wire_name, circuit_structure);
         let expr = gates_to_expr(&circuit_structure);
+        println!("{} -> {}", wire_name, expr.to_string());
         output_to_expr.insert(wire_name.clone(), expr);
     }
 
@@ -37,7 +44,7 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
         panic!("Mismatch between number of outputs and number of gates");
     }
 
-    println!("Output to expr: {:?}", output_to_expr.keys());
+    // println!("Output to expr: {:?}", output_to_expr.keys());
 
     let mut new_circuit: Circuit = Circuit::new();
     let mut wire_counter: usize = 0;
@@ -286,19 +293,29 @@ fn build_circuit(
     }
 }
 
-fn traverse_wire(output_wire: &str, circuit: &Circuit) -> GateMapping {
+fn traverse_wire(
+    output_wire: &str,
+    circuit: &Circuit,
+    memo: &Mutex<HashMap<String, Rc<GateMapping>>>,
+) -> Rc<GateMapping> {
+    let memo_lock = memo.lock().unwrap();
+    if let Some(result) = memo_lock.get(output_wire) {
+        return result.clone();
+    }
+    drop(memo_lock);
+
     let gate = circuit.get(output_wire);
-    match gate {
+    let result = match gate {
         None => {
             let mut mapping = BTreeMap::new();
             mapping.insert(output_wire.to_string(), None);
-            GateMapping { mapping }
+            Rc::new(GateMapping { mapping })
         }
         Some((gate_type, input_wires)) => {
             let mut input_structures: Vec<Rc<GateMapping>> = Vec::new();
             for input_wire in input_wires {
-                let input_structure = traverse_wire(input_wire, circuit);
-                input_structures.push(Rc::new(input_structure));
+                let input_structure = traverse_wire(input_wire, circuit, memo);
+                input_structures.push(input_structure);
             }
             let mut mapping = BTreeMap::new();
             mapping.insert(
@@ -308,89 +325,84 @@ fn traverse_wire(output_wire: &str, circuit: &Circuit) -> GateMapping {
                     input_structures,
                 )))),
             );
-            GateMapping { mapping }
+            Rc::new(GateMapping { mapping })
         }
-    }
+    };
+
+    let mut memo_lock = memo.lock().unwrap();
+    memo_lock.insert(output_wire.to_string(), result.clone());
+    result
 }
 
 fn gates_to_expr(gate: &GateMapping) -> RecExpr<CircuitLang> {
     let mut expr = RecExpr::default();
-    build_expr(&gate, &mut expr);
+    let mut cache = HashMap::new(); // Cache for memoization
+    build_expr(&gate, &mut expr, &mut cache);
     expr
 }
 
-fn build_expr(gate_mapping: &GateMapping, expr: &mut RecExpr<CircuitLang>) -> Id {
+fn build_expr(
+    gate_mapping: &GateMapping,
+    expr: &mut RecExpr<CircuitLang>,
+    cache: &mut HashMap<String, Id>,
+) -> Id {
     gate_mapping
         .mapping
         .iter()
-        .map(|(gate_id, gate_info)| match gate_info {
-            None => expr.add(CircuitLang::Wire(gate_id.clone())),
-            Some(gate_structure) => {
-                let gos = &*gate_structure.as_ref();
-                let GateOutputStructure::Gate(gate_type, inputs) = &*gos.as_ref();
-                let input_exprs: Vec<Id> = inputs
-                    .iter()
-                    .map(|input_gate| build_expr(input_gate, expr))
-                    .collect();
-                match gate_type {
-                    GateType::INPUT => expr.add(CircuitLang::Wire(gate_id.clone())),
-                    GateType::CONST => expr.add(CircuitLang::Wire(gate_id.clone())),
-                    GateType::CONST_0 => expr.add(CircuitLang::Const0),
-                    GateType::CONST_1 => expr.add(CircuitLang::Const1),
-                    GateType::AND => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for AND gate");
-                        expr.add(CircuitLang::And(ids))
-                    }
-                    GateType::OR => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for OR gate");
-                        expr.add(CircuitLang::Or(ids))
-                    }
-                    GateType::XOR => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for XOR gate");
-                        expr.add(CircuitLang::Xor(ids))
-                    }
-                    GateType::NOT => {
-                        let ids: Id = input_exprs.first().unwrap().clone();
-                        expr.add(CircuitLang::Not(ids))
-                    }
-                    GateType::NOR => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for NOR gate");
-                        expr.add(CircuitLang::Nor(ids))
-                    }
-                    GateType::ORNOT => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for ORNOT gate");
-                        expr.add(CircuitLang::OrNot(ids))
-                    }
-                    GateType::NAND => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for NAND gate");
-                        expr.add(CircuitLang::Nand(ids))
-                    }
-                    GateType::ANDNOT => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for ANDNOT gate");
-                        expr.add(CircuitLang::AndNot(ids))
-                    }
-                    GateType::XNOR => {
-                        let ids: [Id; 2] = input_exprs
-                            .try_into()
-                            .expect("Expected two inputs for XNOR gate");
-                        expr.add(CircuitLang::Xnor(ids))
+        .map(|(gate_id, gate_info)| {
+            if let Some(&cached_id) = cache.get(gate_id) {
+                return cached_id;
+            }
+            let result_id = match gate_info {
+                None => expr.add(CircuitLang::Wire(gate_id.clone())),
+                Some(gate_structure) => {
+                    let gos = gate_structure.as_ref();
+                    let GateOutputStructure::Gate(gate_type, inputs) = gos.as_ref();
+                    let input_exprs: Vec<Id> = inputs
+                        .iter()
+                        .map(|input_gate| build_expr(input_gate, expr, cache))
+                        .collect();
+
+                    match gate_type {
+                        GateType::INPUT => expr.add(CircuitLang::Wire(gate_id.clone())),
+                        GateType::CONST => expr.add(CircuitLang::Wire(gate_id.clone())),
+                        GateType::CONST_0 => expr.add(CircuitLang::Const0),
+                        GateType::CONST_1 => expr.add(CircuitLang::Const1),
+                        GateType::AND
+                        | GateType::OR
+                        | GateType::XOR
+                        | GateType::NOR
+                        | GateType::ORNOT
+                        | GateType::NAND
+                        | GateType::ANDNOT
+                        | GateType::XNOR => {
+                            let ids: [Id; 2] = input_exprs
+                                .try_into()
+                                .expect("Expected two inputs for binary gate");
+                            match gate_type {
+                                GateType::AND => expr.add(CircuitLang::And(ids)),
+                                GateType::OR => expr.add(CircuitLang::Or(ids)),
+                                GateType::XOR => expr.add(CircuitLang::Xor(ids)),
+                                GateType::NOR => expr.add(CircuitLang::Nor(ids)),
+                                GateType::ORNOT => expr.add(CircuitLang::OrNot(ids)),
+                                GateType::NAND => expr.add(CircuitLang::Nand(ids)),
+                                GateType::ANDNOT => expr.add(CircuitLang::AndNot(ids)),
+                                GateType::XNOR => expr.add(CircuitLang::Xnor(ids)),
+                                _ => unreachable!("Handled all binary gate types"),
+                            }
+                        }
+                        GateType::NOT => {
+                            let id = *input_exprs
+                                .first()
+                                .expect("Expected one input for unary gate");
+                            expr.add(CircuitLang::Not(id))
+                        }
+                        _ => unreachable!("All gate types handled"),
                     }
                 }
-            }
+            };
+            cache.insert(gate_id.clone(), result_id);
+            result_id
         })
         .next()
         .unwrap_or_else(|| panic!("Invalid gate mapping encountered."))

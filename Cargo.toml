@@ -8,7 +8,7 @@ edition = "2021"
 criterion = "0.5.1"
 
 [[bench]]
-name = "my_benchmark"
+name = "yosys_add64"
 harness = false
 
 [dependencies]

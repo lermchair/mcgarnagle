@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::{Circuit, GateType};
 
+use super::Gate;
+
 #[derive(Debug, Serialize, Deserialize)]
 struct YosysPort {
     direction: String,
@@ -28,13 +30,6 @@ struct YosysModule {
 struct YosysJson {
     creator: String,
     modules: BTreeMap<String, YosysModule>,
-}
-
-#[derive(Debug)]
-struct Gate {
-    inputs: Vec<String>,
-    output: String,
-    type_: GateType,
 }
 
 fn handle_port_direction(port_name: &String, bit: &i32, map: &mut BTreeMap<String, Vec<String>>) {
