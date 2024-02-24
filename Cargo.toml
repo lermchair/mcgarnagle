@@ -11,6 +11,15 @@ criterion = "0.5.1"
 name = "yosys_add64"
 harness = false
 
+[[bench]]
+name = "bristol_add64"
+harness = false
+
+[[bench]]
+name = "bristol_sha256"
+harness = false
+
+
 [dependencies]
 base64 = "0.21.7"
 egg = "0.9.5"

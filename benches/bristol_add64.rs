@@ -68,11 +68,11 @@ fn garble_and_evaluate_prepared(
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let file_path = "./circuits/synth_add64.json".to_owned();
+    let file_path = "./circuits/adder64.txt".to_owned();
     let contents = read_to_string(file_path).expect("Couldn't find or load that file.");
 
     // Move circuit creation outside of the benchmark loop
-    let (circuit, ins, outs) = parser::parse_yosys_json(&contents);
+    let (circuit, ins, outs) = parser::parse_bristol_fashion(&contents);
     let normal_circuit = circuit.clone();
 
     let out_keys = outs
@@ -115,7 +115,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     );
     let (xor_wire_to_keys, xor_garbled_gates) = xor_garbler.build();
 
-    let mut group = c.benchmark_group("CompareAdd64");
+    let mut group = c.benchmark_group("CompareAdder64");
 
     group.bench_function("normal_circuit", |b| {
         b.iter(|| {

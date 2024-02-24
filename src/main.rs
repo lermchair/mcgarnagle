@@ -6,12 +6,13 @@ use rs::{
     garbler::Garbler,
     optimizer::optimize,
     parser::{parse_bristol_fashion, parse_yosys_json},
-    utils::{topo_sort_wires, wire_values},
+    utils::{topo_sort_wires, wire_values, wire_values_str},
 };
 
 fn main() {
     let delta = Fernet::generate_key();
     let file_path = "./circuits/adder64.txt".to_owned();
+    // let file_path = "./circuits/sha256.txt".to_owned();
     // let file_path = "./circuits/synth_add64.json".to_owned();
     let contents = read_to_string(file_path).expect("Couldn't find or load that file.");
     let (circuit, ins, outs) = parse_bristol_fashion(&contents);
@@ -40,11 +41,16 @@ fn main() {
     let x = 999;
     let y = 77;
 
+    // let alice_input = "Hello, world!";
+    // let chaining_value = "This is a chaining value";
+
     let alice_input_values = wire_values(alice_input_keys, x);
+    // let alice_input_values = wire_values_str(alice_input_keys, alice_input.to_string());
     let mut alice_input_labels = BTreeMap::new();
 
     let bob_input_keys = &ins["b"];
 
+    // let bob_input_values = wire_values_str(bob_input_keys, chaining_value.to_string());
     let bob_input_values = wire_values(bob_input_keys, y);
     let mut bob_input_labels = BTreeMap::new();
 

@@ -4,7 +4,7 @@ use rs::evaluator::Evaluator;
 use rs::garbler::{GarbledGate, Garbler};
 use rs::optimizer::optimize;
 use rs::parser;
-use rs::utils::{topo_sort_wires, wire_values, Circuit, GateType};
+use rs::utils::{topo_sort_wires, wire_values_str, Circuit, GateType};
 use std::collections::BTreeMap;
 use std::fs::read_to_string;
 
@@ -17,9 +17,12 @@ fn garble_and_evaluate_prepared(
     let alice_input_keys = &ins["a"];
     let bob_input_keys = &ins["b"];
 
+    let alice_input = "Hello, world!";
+    let chaining_value = "This is a chaining value";
+
     // Assuming wire_values and other necessary functions are accessible
-    let alice_input_values = wire_values(alice_input_keys, 3); // Example values
-    let bob_input_values = wire_values(bob_input_keys, 3);
+    let alice_input_values = wire_values_str(alice_input_keys, alice_input.to_string()); // Example values
+    let bob_input_values = wire_values_str(bob_input_keys, chaining_value.to_string());
 
     let mut alice_input_labels = BTreeMap::new();
     let mut bob_input_labels = BTreeMap::new();
@@ -68,11 +71,11 @@ fn garble_and_evaluate_prepared(
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    let file_path = "./circuits/synth_add64.json".to_owned();
+    let file_path = "./circuits/sha256.txt".to_owned();
     let contents = read_to_string(file_path).expect("Couldn't find or load that file.");
 
     // Move circuit creation outside of the benchmark loop
-    let (circuit, ins, outs) = parser::parse_yosys_json(&contents);
+    let (circuit, ins, outs) = parser::parse_bristol_fashion(&contents);
     let normal_circuit = circuit.clone();
 
     let out_keys = outs
@@ -115,7 +118,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     );
     let (xor_wire_to_keys, xor_garbled_gates) = xor_garbler.build();
 
-    let mut group = c.benchmark_group("CompareAdd64");
+    let mut group = c.benchmark_group("CompareSha256");
 
     group.bench_function("normal_circuit", |b| {
         b.iter(|| {

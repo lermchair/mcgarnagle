@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap, VecDeque},
+    collections::{BTreeMap, HashMap},
     rc::Rc,
     sync::Mutex,
 };
@@ -31,12 +31,12 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
     let memo = Mutex::new(HashMap::new());
 
     for wire_name in outputs.iter() {
-        println!("Traversing wire: {}", wire_name);
+        // println!("Traversing wire: {}", wire_name);
         let circuit_structure = traverse_wire(wire_name, &circuit, &memo);
-        println!("Generating expression...");
+        // println!("Generating expression...");
         // println!("Building for: {} -> {:?}", wire_name, circuit_structure);
         let expr = gates_to_expr(&circuit_structure);
-        println!("{} -> expr with len {}", wire_name, expr.as_ref().len());
+        // println!("{} -> expr with len {}", wire_name, expr.as_ref().len());
         output_to_expr.insert(wire_name.clone(), expr);
     }
 
@@ -337,7 +337,7 @@ fn traverse_wire(
 
 fn gates_to_expr(gate: &GateMapping) -> RecExpr<CircuitLang> {
     let mut expr = RecExpr::default();
-    let mut cache = HashMap::new(); // Cache for memoization
+    let mut cache = HashMap::new();
     build_expr(&gate, &mut expr, &mut cache);
     expr
 }
@@ -410,12 +410,21 @@ fn build_expr(
 }
 
 fn simplify(expr: &RecExpr<CircuitLang>) -> RecExpr<CircuitLang> {
-    let runner = Runner::default().with_expr(&expr).run(&circuit_rules());
+    let runner = Runner::default()
+        .with_expr(&expr)
+        // .with_iter_limit(10)
+        // .with_node_limit(150_000)
+        .run(&circuit_rules());
+    println!(
+        "Stopped after {} iterations, reason: {:?}",
+        runner.iterations.len(),
+        runner.stop_reason
+    );
     let root = runner.roots[0];
     let extractor = Extractor::new(&runner.egraph, GarbleCost);
     let (best_cost, best) = extractor.find_best(root);
-    if best.to_string() != *expr.to_string() {
-        println!("Simplified to cost {}", best_cost);
-    }
+    // if best.to_string() != *expr.to_string() {
+    //     println!("Simplified to cost {}", best_cost);
+    // }
     best
 }
