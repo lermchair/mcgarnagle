@@ -167,12 +167,22 @@ fn string_to_binary(string: &str) -> String {
 
 pub fn wire_values_str(input_keys: &Vec<String>, value: String) -> BTreeMap<String, i32> {
     let binary_string = string_to_binary(&value);
-    let bits = binary_string.parse::<i32>().unwrap();
+    let mut bits_str = binary_string.split("").collect::<Vec<&str>>();
+    bits_str.pop();
+    bits_str.remove(0);
+    let mut bits = bits_str
+        .iter()
+        .map(|x| x.parse::<i32>().unwrap())
+        .collect::<Vec<i32>>();
 
-    let bits_padded = format!("{:0<width$}", bits, width = input_keys.len());
+    if input_keys.len() > bits.len() {
+        let padding = vec![0; input_keys.len() - bits.len()];
+        bits.extend(padding);
+    }
+
     input_keys
         .into_iter()
-        .zip(bits_padded.chars())
-        .map(|(key, bit)| (key.to_string(), bit.to_digit(10).unwrap() as i32))
+        .zip(bits)
+        .map(|(key, bit)| (key.to_string(), bit))
         .collect()
 }

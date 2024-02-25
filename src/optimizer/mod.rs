@@ -34,27 +34,27 @@ fn circuit_rules() -> Vec<Rewrite<CircuitLang, ()>> {
         rewrite!("nand-to-or"; "(nand (nand ?a ?a) (nand ?b ?b))" => "(or ?a ?b)"),
         rewrite!("de-morgan-nand-to-or"; "(nand ?a ?b)" => "(not (and ?a ?b))"),
         rewrite!("de-morgan-nand-to-or-2"; "(nand (nand ?a ?a) (nand ?b ?b))" => "(or ?a ?b)"),
-        // //
+        //
         rewrite! {"identity_and";        "(and ?a const_1)"       => "?a"},
         rewrite! {"identity_or";         "(or ?a const_0)"       => "?a"},
-        // //
+        //
         rewrite! {"negation_and";        "(and ?a (not ?a))"   => "const_0"},
         rewrite! {"negation_or";         "(or ?a (not ?a))"    => "const_1"},
-        // //
+        //
         rewrite! {"double_negative";     "(not (not ?a))"      => "?a"},
-        // //
+        //
         rewrite! {"idempotent_and";      "(and ?a ?a)"         => "?a"},
         rewrite! {"idempotent_or";       "(or ?a ?a)"          => "?a"},
-        // //
+        //
         rewrite! {"universal_bound_and";  "(and ?a const_0)"     => "const_0"},
         rewrite! {"universal_bound_or";   "(or ?a const_1)"       => "const_1"},
-        // //
+        //
         rewrite! {"absorption_and";      "(and ?a (or ?a ?b))" => "?a"},
         rewrite! {"absorption_or";       "(or ?a (and ?a ?b))" => "?a"},
-        // //
+        //
         rewrite! {"negation_true";       "(not const_1)"          => "const_0"},
         rewrite! {"negation_false";      "(not const_0)"         => "const_1"},
-        // //
+        //
         rewrite!("xor_neg_identity"; "(not ?a)" => "(xor ?a const_1)"),
         rewrite!("xor_identity"; "(xor ?a const_0)" => "?a"),
         //
@@ -92,7 +92,7 @@ impl CostFunction<CircuitLang> for GarbleCost {
             CircuitLang::And(_) => 4.0,
             CircuitLang::Or(_) => 4.0,
             CircuitLang::Not(_) => 2.0,
-            CircuitLang::Xor(_) => 0.0,
+            CircuitLang::Xor(_) => 1.0,
             CircuitLang::OrNot(_) => 4.0,
             CircuitLang::Nor(_) => 4.0,
             CircuitLang::Nand(_) => 4.0,

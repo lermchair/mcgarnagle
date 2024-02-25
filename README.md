@@ -9,9 +9,11 @@
 
 ## Does it actually work?
 
-Kind of. Here is the result from running `cargo bench`, which compares an optimized and unoptimized 64-bit adder circuit. Bigger circuits will probably show more improvement.
+Kind of. Here is the result from running `cargo bench`, which compares an optimized and unoptimized 64-bit adder circuit.
 
 ![Benchmark](./benchmark.png?raw=true "Benchmark")
+
+For large circuits (e.g. SHA-256), the actual optimization time will be much slower than simply running the circuit unoptimized. However, we technically only need to do the optimization once, so the cost can be spread out over many uses of the circuit.
 
 ## How is this better than normal logic synthesis tools?
 
