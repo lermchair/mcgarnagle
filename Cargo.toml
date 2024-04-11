@@ -11,13 +11,13 @@ criterion = "0.5.1"
 name = "yosys_add64"
 harness = false
 
-[[bench]]
-name = "bristol_add64"
-harness = false
+# [[bench]]
+# name = "bristol_add64"
+# harness = false
 
-[[bench]]
-name = "bristol_sha256"
-harness = false
+# [[bench]]
+# name = "bristol_sha256"
+# harness = false
 
 
 [dependencies]

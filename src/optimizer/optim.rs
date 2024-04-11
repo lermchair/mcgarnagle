@@ -31,20 +31,14 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
     let memo = Mutex::new(HashMap::new());
 
     for wire_name in outputs.iter() {
-        // println!("Traversing wire: {}", wire_name);
         let circuit_structure = traverse_wire(wire_name, &circuit, &memo);
-        // println!("Generating expression...");
-        // println!("Building for: {} -> {:?}", wire_name, circuit_structure);
         let expr = gates_to_expr(&circuit_structure);
-        // println!("{} -> expr with len {}", wire_name, expr.as_ref().len());
         output_to_expr.insert(wire_name.clone(), expr);
     }
 
     if output_to_expr.len() != outputs.len() {
         panic!("Mismatch between number of outputs and number of gates");
     }
-
-    // println!("Output to expr: {:?}", output_to_expr.keys());
 
     let mut new_circuit: Circuit = Circuit::new();
     let mut wire_counter: usize = 0;

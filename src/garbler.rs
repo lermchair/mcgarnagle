@@ -31,9 +31,8 @@ impl Garbler {
         circuit: Circuit,
         ins: BTreeMap<String, Vec<String>>,
         outs: BTreeMap<String, Vec<String>>,
-    ) -> Garbler {
+    ) -> Self {
         let mut wire_to_keys: BTreeMap<String, (String, String)> = BTreeMap::new();
-        let garbled_gates: BTreeMap<String, GarbledGate> = BTreeMap::new();
 
         for (_wire_name, wire_id) in ins.iter() {
             for i in wire_id {
@@ -47,11 +46,11 @@ impl Garbler {
             }
         }
 
-        Garbler {
+        Self {
             delta,
             circuit,
             wire_to_keys,
-            garbled_gates,
+            garbled_gates: BTreeMap::new(),
         }
     }
 
@@ -67,12 +66,6 @@ impl Garbler {
             if gate_type == &GateType::INPUT {
                 continue;
             }
-            // println!(
-            //     "Garbling gate {:?} for wire {} with inputs {:?}",
-            //     gate_type.clone(),
-            //     wire,
-            //     gate_inputs
-            // );
 
             let gate_wire_to_keys_cloned: BTreeMap<String, (String, String)> = gate_inputs
                 .iter()
@@ -127,22 +120,20 @@ impl Garbler {
         output: Option<(String, String)>,
         gate_input_names: Vec<String>,
     ) -> GarbledGate {
-        if gate_op == GateType::NOT
-            || gate_op == GateType::CONST_0
-            || gate_op == GateType::CONST_1
-            || gate_op == GateType::CONST
-        {
-            assert!(gate_wire_to_keys.len() == 1, "Unary gate expects 1 input");
-        } else {
-            assert!(gate_wire_to_keys.len() == 2, "Gate expects 2 inputs");
-        }
+        assert!(
+            (gate_op == GateType::NOT
+                || gate_op == GateType::CONST_0
+                || gate_op == GateType::CONST_1
+                || gate_op == GateType::CONST)
+                && gate_wire_to_keys.len() == 1
+                || gate_wire_to_keys.len() == 2,
+            "Invalid number of inputs for gate type"
+        );
 
-        let in_keys_a = gate_wire_to_keys.get(&gate_input_names[0]).unwrap();
-        let mut in_keys_b: Option<&(String, String)> = None;
-
-        if gate_wire_to_keys.keys().len() > 1 {
-            in_keys_b = Some(gate_wire_to_keys.get(&gate_input_names[1]).unwrap());
-        }
+        let (in_keys_a, in_keys_b) = (
+            &gate_wire_to_keys[&gate_input_names[0]],
+            gate_wire_to_keys.get(&gate_input_names[1]),
+        );
 
         if gate_op == GateType::XOR {
             let safe_in_keys_a = URL_SAFE.decode(&in_keys_a.0).unwrap();
@@ -163,26 +154,25 @@ impl Garbler {
             };
         }
 
-        let output_labels: (String, String);
-        if output.is_none() {
-            output_labels = generate_keys(&self.delta);
-        } else {
-            output_labels = output.unwrap();
-        }
-
+        let output_labels = output.unwrap_or_else(|| generate_keys(&self.delta));
         let mut garbled_table: Vec<String> = vec![];
 
-        if gate_op == GateType::NOT
-            || gate_op == GateType::CONST_0
-            || gate_op == GateType::CONST_1
-            || gate_op == GateType::CONST
-        {
-            for a_val in 0..2 {
-                let a_key = if a_val == 0 {
-                    &in_keys_a.0
-                } else {
-                    &in_keys_a.1
-                };
+        for (a_val, a_key) in [(0, &in_keys_a.0), (1, &in_keys_a.1)] {
+            if let Some(in_keys_b) = in_keys_b {
+                for (b_val, b_key) in [(0, &in_keys_b.0), (1, &in_keys_b.1)] {
+                    let out_val = self.switch_gate(gate_op, a_val == 1, b_val == 1);
+                    let out_bytes_val = if out_val {
+                        &output_labels.1
+                    } else {
+                        &output_labels.0
+                    };
+
+                    let key = generate_encryption_key(&[a_key.as_bytes(), b_key.as_bytes()]);
+                    let encoded_key = URL_SAFE.encode(&key);
+
+                    garbled_table.push(encrypt(&encoded_key, out_bytes_val.as_bytes().to_vec()));
+                }
+            } else {
                 let out_val = if a_val == 1 { 0 } else { 1 };
                 let out_bytes_val = if out_val == 1 {
                     &output_labels.1
@@ -191,40 +181,6 @@ impl Garbler {
                 };
 
                 let key = generate_encryption_key(&[a_key.as_bytes()]);
-                let encoded_key = URL_SAFE.encode(&key);
-
-                garbled_table.push(encrypt(&encoded_key, out_bytes_val.as_bytes().to_vec()));
-            }
-
-            return GarbledGate {
-                operation: gate_op,
-                table: garbled_table,
-                input_wire_ids: gate_input_names,
-                output_keys: (output_labels.0, output_labels.1),
-            };
-        }
-
-        for a_val in 0..2 {
-            for b_val in 0..2 {
-                let a_key = if a_val == 0 {
-                    &in_keys_a.0
-                } else {
-                    &in_keys_a.1
-                };
-                let b_key = if b_val == 0 {
-                    &in_keys_b.unwrap().0
-                } else {
-                    &in_keys_b.unwrap().1
-                };
-
-                let out_val = self.switch_gate(gate_op, a_val == 1, b_val == 1);
-                let out_bytes_val = if out_val {
-                    &output_labels.1
-                } else {
-                    &output_labels.0
-                };
-
-                let key = generate_encryption_key(&[a_key.as_bytes(), b_key.as_bytes()]);
                 let encoded_key = URL_SAFE.encode(&key);
 
                 garbled_table.push(encrypt(&encoded_key, out_bytes_val.as_bytes().to_vec()));

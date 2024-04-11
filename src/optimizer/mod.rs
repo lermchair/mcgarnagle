@@ -100,7 +100,7 @@ impl CostFunction<CircuitLang> for GarbleCost {
             CircuitLang::Xnor(_) => 4.0,
             CircuitLang::Const0 => 4.0,
             CircuitLang::Const1 => 4.0,
-            _ => 1.0,
+            _ => 4.0,
         };
         enode.fold(op_cost, |sum, id| sum + costs(id))
     }

@@ -21,8 +21,8 @@ impl Evaluator {
         outputs: Vec<String>,
         wire_to_keys: BTreeMap<String, (String, String)>,
         gates: BTreeMap<String, GarbledGate>,
-    ) -> Evaluator {
-        Evaluator {
+    ) -> Self {
+        Self {
             circuit,
             outputs,
             wire_to_keys,
@@ -32,8 +32,6 @@ impl Evaluator {
     }
 
     pub fn run(&mut self, inputs: Vec<BTreeMap<String, &String>>) -> BTreeMap<String, i32> {
-        let mut wire_to_value: BTreeMap<String, i32> = BTreeMap::new();
-
         for party in inputs.iter() {
             for (wire_id, value) in party.iter() {
                 assert!(
@@ -45,53 +43,39 @@ impl Evaluator {
             }
         }
 
-        let sorted_wires = topo_sort_wires(&self.circuit);
-        for wire in &sorted_wires {
-            if !self.gates.contains_key(wire) {
-                continue;
-            }
-            let garbled_gate = self.gates.get(wire).unwrap();
+        let mut wire_to_value = BTreeMap::new();
+        for wire in topo_sort_wires(&self.circuit) {
+            if let Some(garbled_gate) = self.gates.get(&wire) {
+                let gate_inputs: Vec<String> = garbled_gate
+                    .input_wire_ids
+                    .iter()
+                    .map(|wire_id| self.computed[wire_id].clone())
+                    .collect();
 
-            let gate_inputs: Vec<String> = garbled_gate
-                .input_wire_ids
-                .iter()
-                .map(|wire_id| self.computed.get(wire_id).unwrap().clone())
-                .collect();
+                let result = self
+                    .evaluate_garbled_gate(garbled_gate, gate_inputs)
+                    .unwrap_or_else(|e| panic!("Error: {:?}", e));
 
-            // println!(
-            //     "Evaluating gate {:?} with inputs {:?}",
-            //     garbled_gate.operation, garbled_gate.input_wire_ids
-            // );
+                assert!(
+                    garbled_gate.output_keys.0 == result || garbled_gate.output_keys.1 == result,
+                    "Output value does not match the keys"
+                );
 
-            let result = self.evaluate_garbled_gate(garbled_gate, gate_inputs);
-
-            match result {
-                Ok(value) => {
-                    if garbled_gate.output_keys.0 == value || garbled_gate.output_keys.1 == value {
-                        self.computed.insert(wire.clone(), value.clone());
-                        if value == garbled_gate.output_keys.0 {
-                            wire_to_value.insert(wire.clone(), 0);
-                        } else if value == garbled_gate.output_keys.1 {
-                            wire_to_value.insert(wire.clone(), 1);
-                        }
+                self.computed.insert(wire.clone(), result.clone());
+                wire_to_value.insert(
+                    wire.clone(),
+                    if result == garbled_gate.output_keys.0 {
+                        0
                     } else {
-                        panic!("Output value does not match the keys");
-                    }
-                }
-                Err(e) => {
-                    panic!("Error: {:?}", e);
-                }
+                        1
+                    },
+                );
             }
         }
-
-        let mut result = BTreeMap::new();
-        for output_wire in self.outputs.iter() {
-            result.insert(
-                output_wire.to_string(),
-                *wire_to_value.get(output_wire).unwrap(),
-            );
-        }
-        result
+        self.outputs
+            .iter()
+            .map(|output_wire| (output_wire.to_string(), wire_to_value[output_wire]))
+            .collect()
     }
 
     fn evaluate_garbled_gate(
@@ -100,11 +84,11 @@ impl Evaluator {
         inputs: Vec<String>,
     ) -> Result<String, Box<dyn Error>> {
         if garbled_gate.operation == GateType::XOR {
-            let in_a = URL_SAFE.decode(&inputs[0]).unwrap();
-            let in_b = URL_SAFE.decode(&inputs[1]).unwrap();
-            let result_bytes = bytes_xor(&in_a, &in_b);
-            let result = URL_SAFE.encode(&result_bytes);
-            return Ok(result);
+            let result_bytes = bytes_xor(
+                &URL_SAFE.decode(&inputs[0]).unwrap(),
+                &URL_SAFE.decode(&inputs[1]).unwrap(),
+            );
+            return Ok(URL_SAFE.encode(&result_bytes));
         }
 
         for garbled_output in &garbled_gate.table {
@@ -120,16 +104,10 @@ impl Evaluator {
         .into())
     }
 
-    fn try_decrypt(&self, inputs: &Vec<String>, garbled_output: &String) -> Option<String> {
-        let bytes_inputs = inputs.iter().map(|i| i.as_bytes()).collect::<Vec<&[u8]>>();
-        let key = generate_encryption_key(&bytes_inputs);
-        let encoded_key = URL_SAFE.encode(&key);
-        let decrypted = decrypt(encoded_key, garbled_output.to_string());
-        match decrypted {
-            Ok(decrypted) => {
-                return Some(from_utf8(&decrypted).unwrap().to_string());
-            }
-            Err(_) => None,
-        }
+    fn try_decrypt(&self, inputs: &[String], garbled_output: &str) -> Option<String> {
+        let key = generate_encryption_key(&inputs.iter().map(|i| i.as_bytes()).collect::<Vec<_>>());
+        decrypt(URL_SAFE.encode(&key), garbled_output.to_string())
+            .ok()
+            .and_then(|decrypted| from_utf8(&decrypted).map(|s| s.to_string()).ok())
     }
 }
