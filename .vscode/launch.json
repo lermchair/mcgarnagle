@@ -1,0 +1,92 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in library 'rs'",
+      "cargo": {
+        "args": ["test", "--no-run", "--lib", "--package=rs"],
+        "filter": {
+          "name": "rs",
+          "kind": "lib"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug executable 'rs'",
+      "cargo": {
+        "args": ["build", "--bin=rs", "--package=rs"],
+        "filter": {
+          "name": "rs",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug unit tests in executable 'rs'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bin=rs", "--package=rs"],
+        "filter": {
+          "name": "rs",
+          "kind": "bin"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug benchmark 'yosys_add64'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bench=yosys_add64", "--package=rs"],
+        "filter": {
+          "name": "yosys_add64",
+          "kind": "bench"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug benchmark 'bristol_add64'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bench=bristol_add64", "--package=rs"],
+        "filter": {
+          "name": "bristol_add64",
+          "kind": "bench"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "Debug benchmark 'bristol_sha256'",
+      "cargo": {
+        "args": ["test", "--no-run", "--bench=bristol_sha256", "--package=rs"],
+        "filter": {
+          "name": "bristol_sha256",
+          "kind": "bench"
+        }
+      },
+      "args": [],
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

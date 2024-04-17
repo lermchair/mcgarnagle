@@ -31,12 +31,12 @@ impl Evaluator {
         }
     }
 
-    pub fn run(&mut self, inputs: Vec<BTreeMap<String, &String>>) -> BTreeMap<String, i32> {
+    pub fn run(&mut self, inputs: Vec<BTreeMap<String, String>>) -> BTreeMap<String, i32> {
         for party in inputs.iter() {
             for (wire_id, value) in party.iter() {
                 assert!(
-                    &self.wire_to_keys[wire_id].0 == *value
-                        || &self.wire_to_keys[wire_id].1 == *value,
+                    &self.wire_to_keys[wire_id].0 == value
+                        || &self.wire_to_keys[wire_id].1 == value,
                     "Input value does not match keys"
                 );
                 self.computed.insert(wire_id.to_string(), value.to_string());
