@@ -48,5 +48,4 @@ For large circuits (e.g. SHA-256), the actual optimization time will be much slo
 
 TODO:
 
-- [ ] Actually implement oblivious transfer
 - [ ] Make slightly more configurable

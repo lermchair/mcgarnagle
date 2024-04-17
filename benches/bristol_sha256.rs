@@ -34,7 +34,7 @@ fn garble_and_evaluate_prepared(
         } else {
             &wire_key.1
         };
-        alice_input_labels.insert(wire_id.clone(), label);
+        alice_input_labels.insert(wire_id.clone(), label.to_string());
     }
 
     for (wire_id, value) in bob_input_values.iter() {
@@ -44,7 +44,7 @@ fn garble_and_evaluate_prepared(
         } else {
             &wire_key.1
         };
-        bob_input_labels.insert(wire_id.clone(), label);
+        bob_input_labels.insert(wire_id.clone(), label.to_string());
     }
 
     // Assuming the setup for evaluator is similar to the one in your main function

@@ -7,17 +7,17 @@ edition = "2021"
 [dev-dependencies]
 criterion = "0.5.1"
 
-# [[bench]]
-# name = "yosys_add64"
-# harness = false
+[[bench]]
+name = "yosys_add64"
+harness = false
 
 # [[bench]]
 # name = "bristol_add64"
 # harness = false
 
-[[bench]]
-name = "bristol_sha256"
-harness = false
+# [[bench]]
+# name = "bristol_sha256"
+# harness = false
 
 
 [dependencies]
