@@ -5,6 +5,8 @@ use std::{
 };
 
 use egg::{Extractor, Id, RecExpr, Runner};
+use indicatif::{ProgressBar, ProgressStyle};
+use rayon::prelude::*;
 
 use crate::{
     optimizer::CircuitLang,
@@ -26,7 +28,13 @@ struct GateMapping {
 pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
     let mut output_to_expr: HashMap<String, RecExpr<CircuitLang>> = HashMap::new();
 
-    println!("Traversing outputs...");
+    let pb = ProgressBar::new(outputs.len() as u64);
+    let pb_style = ProgressStyle::default_bar()
+        .template("{msg} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos}/{len}")
+        .unwrap()
+        .progress_chars("#>-");
+    pb.set_style(pb_style.clone());
+    pb.set_message("Traversing outputs...");
 
     let memo = Mutex::new(HashMap::new());
 
@@ -34,7 +42,10 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
         let circuit_structure = traverse_wire(wire_name, &circuit, &memo);
         let expr = gates_to_expr(&circuit_structure);
         output_to_expr.insert(wire_name.clone(), expr);
+        pb.inc(1);
     }
+
+    pb.finish_with_message("Finished traversing outputs.");
 
     if output_to_expr.len() != outputs.len() {
         panic!("Mismatch between number of outputs and number of gates");
@@ -45,18 +56,36 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
 
     let mut existing_gates: HashMap<String, String> = HashMap::new();
 
-    println!("Simplifying expressions...");
+    let pb = ProgressBar::new(output_to_expr.len() as u64);
+    pb.set_style(pb_style.clone());
+    pb.set_message("Simplifying expressions...");
 
-    for (output_name, expr) in output_to_expr.iter() {
-        let simplified = simplify(expr);
+    let simplified_exprs = output_to_expr
+        .par_iter_mut()
+        .map(|(output_name, expr)| {
+            let simplified = simplify(expr);
+            pb.inc(1);
+            return (output_name, simplified);
+        })
+        .collect::<Vec<(&String, RecExpr<CircuitLang>)>>();
+
+    pb.finish_with_message("Simplified expressions.");
+    let pb = ProgressBar::new(simplified_exprs.len() as u64);
+    pb.set_style(pb_style);
+    pb.set_message("Building circuit...");
+    for (output_name, expr) in simplified_exprs {
         build_circuit(
-            simplified,
+            expr,
             &mut new_circuit,
             &mut existing_gates,
             &mut wire_counter,
             output_name.to_string(),
         );
+        pb.inc(1);
     }
+
+    pb.finish_with_message("Done!");
+
     println!("Orig circuit len: {}", circuit.keys().len());
     println!("New circuit len: {}", new_circuit.keys().len());
     new_circuit
@@ -409,11 +438,11 @@ fn simplify(expr: &RecExpr<CircuitLang>) -> RecExpr<CircuitLang> {
         // .with_iter_limit(10)
         // .with_node_limit(150_000)
         .run(&circuit_rules());
-    println!(
-        "Stopped after {} iterations, reason: {:?}",
-        runner.iterations.len(),
-        runner.stop_reason
-    );
+    // println!(
+    //     "Stopped after {} iterations, reason: {:?}",
+    //     runner.iterations.len(),
+    //     runner.stop_reason
+    // );
     let root = runner.roots[0];
     let extractor = Extractor::new(&runner.egraph, GarbleCost);
     let (best_cost, best) = extractor.find_best(root);

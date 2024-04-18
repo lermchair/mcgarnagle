@@ -132,7 +132,11 @@ impl Garbler {
 
         let (in_keys_a, in_keys_b) = (
             &gate_wire_to_keys[&gate_input_names[0]],
-            gate_wire_to_keys.get(&gate_input_names[1]),
+            if gate_input_names.len() > 1 {
+                gate_wire_to_keys.get(&gate_input_names[1])
+            } else {
+                None
+            },
         );
 
         if gate_op == GateType::XOR {

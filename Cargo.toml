@@ -11,9 +11,9 @@ criterion = "0.5.1"
 name = "yosys_add64"
 harness = false
 
-# [[bench]]
-# name = "bristol_add64"
-# harness = false
+[[bench]]
+name = "bristol_add64"
+harness = false
 
 # [[bench]]
 # name = "bristol_sha256"
@@ -28,6 +28,7 @@ egg = "0.9.5"
 env_logger = "0.11.2"
 fernet = "0.2.1"
 hmac = "0.12.1"
+indicatif = "0.17.8"
 log = "0.4.20"
 num-bigint = { version = "0.4.4", features = ["rand"] }
 rand = "0.8.5"

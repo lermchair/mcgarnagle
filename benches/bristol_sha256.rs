@@ -119,6 +119,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     let (xor_wire_to_keys, xor_garbled_gates) = xor_garbler.build();
 
     let mut group = c.benchmark_group("CompareSha256");
+    group.sample_size(10);
 
     group.bench_function("normal_circuit", |b| {
         b.iter(|| {
