@@ -84,7 +84,7 @@ pub fn optimize(circuit: Circuit, outputs: Vec<String>) -> Circuit {
         pb.inc(1);
     }
 
-    pb.finish_with_message("Done!");
+    pb.finish();
 
     println!("Orig circuit len: {}", circuit.keys().len());
     println!("New circuit len: {}", new_circuit.keys().len());
@@ -135,28 +135,6 @@ fn build_circuit(
             None
         };
         match e {
-            CircuitLang::Const0 => {
-                let output_wire = add_or_reuse_gate(
-                    global_circuit,
-                    GateType::CONST_0,
-                    &vec![],
-                    existing_gates,
-                    wire_counter,
-                    &output_wire,
-                );
-                stack.push(output_wire);
-            }
-            CircuitLang::Const1 => {
-                let output_wire = add_or_reuse_gate(
-                    global_circuit,
-                    GateType::CONST_1,
-                    &vec![],
-                    existing_gates,
-                    wire_counter,
-                    &output_wire,
-                );
-                stack.push(output_wire);
-            }
             CircuitLang::And(ids) => {
                 let mut inputs: Vec<String> = vec![];
                 for id in ids.iter() {
@@ -390,8 +368,6 @@ fn build_expr(
                     match gate_type {
                         GateType::INPUT => expr.add(CircuitLang::Wire(gate_id.clone())),
                         GateType::CONST => expr.add(CircuitLang::Wire(gate_id.clone())),
-                        GateType::CONST_0 => expr.add(CircuitLang::Const0),
-                        GateType::CONST_1 => expr.add(CircuitLang::Const1),
                         GateType::AND
                         | GateType::OR
                         | GateType::XOR
@@ -435,8 +411,9 @@ fn build_expr(
 fn simplify(expr: &RecExpr<CircuitLang>) -> RecExpr<CircuitLang> {
     let runner = Runner::default()
         .with_expr(&expr)
-        // .with_iter_limit(10)
-        // .with_node_limit(150_000)
+        // .with_iter_limit(75)
+        // .with_node_limit(5_000_000)
+        // .with_time_limit(std::time::Duration::from_secs(30))
         .run(&circuit_rules());
     // println!(
     //     "Stopped after {} iterations, reason: {:?}",

@@ -106,8 +106,6 @@ impl Garbler {
             GateType::XNOR => a_val == b_val,
             GateType::XOR => a_val ^ b_val,
             GateType::NOT => !a_val,
-            GateType::CONST_0 => false,
-            GateType::CONST_1 => true,
             GateType::CONST => a_val,
             GateType::INPUT => a_val,
         }
@@ -121,10 +119,7 @@ impl Garbler {
         gate_input_names: Vec<String>,
     ) -> GarbledGate {
         assert!(
-            (gate_op == GateType::NOT
-                || gate_op == GateType::CONST_0
-                || gate_op == GateType::CONST_1
-                || gate_op == GateType::CONST)
+            (gate_op == GateType::NOT || gate_op == GateType::CONST)
                 && gate_wire_to_keys.len() == 1
                 || gate_wire_to_keys.len() == 2,
             "Invalid number of inputs for gate type"

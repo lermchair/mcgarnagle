@@ -7,7 +7,7 @@ use rs::{
     garbler::{GarbledGate, Garbler},
     optimizer::optimize,
     ot::{Receiver, Sender},
-    parser::parse_yosys_json,
+    parser::parse_bristol_fashion,
     utils::{wire_values, GateType},
 };
 
@@ -56,9 +56,9 @@ fn alice_setup(
 
 fn main() {
     let delta = Fernet::generate_key();
-    let file_path = "./circuits/synth_add64.json".to_owned();
+    let file_path = "./circuits/add64.txt".to_owned();
     let contents = read_to_string(file_path).expect("Couldn't find or load file.");
-    let (circuit, ins, outs) = parse_yosys_json(&contents);
+    let (circuit, ins, outs) = parse_bristol_fashion(&contents);
 
     let out_keys = outs
         .iter()

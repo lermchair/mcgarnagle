@@ -22,8 +22,6 @@ pub enum GateType {
     NAND,
     ANDNOT,
     XNOR,
-    CONST_1,
-    CONST_0,
     CONST,
     INPUT,
 }
@@ -40,8 +38,6 @@ impl Display for GateType {
             GateType::NAND => write!(f, "NAND"),
             GateType::ANDNOT => write!(f, "ANDNOT"),
             GateType::XNOR => write!(f, "XNOR"),
-            GateType::CONST_1 => write!(f, "CONST_1"),
-            GateType::CONST_0 => write!(f, "CONST_0"),
             GateType::CONST => write!(f, "CONST"),
             GateType::INPUT => write!(f, "INPUT"),
         }
